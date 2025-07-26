@@ -21,7 +21,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:8080",
-      "https://careerscope-2epjy5s6v-varunshah03s-projects.vercel.app", // Update this with your actual Vercel URL
+      "https://careerscope-ai.vercel.app/", // Update this with your actual Vercel URL
       "https://*.vercel.app", // Allow all Vercel subdomains during development
     ],
     credentials: true,
