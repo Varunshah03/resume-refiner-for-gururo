@@ -18,12 +18,21 @@ const PORT = process.env.PORT || 3001;
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:8080",
-      "https://careerscope-2epjy5s6v-varunshah03s-projects.vercel.app", // Update this with your actual Vercel URL
-      "https://*.vercel.app", // Allow all Vercel subdomains during development
-    ],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "https://careerscope-2epjy5s6v-varunshah03s-projects.vercel.app",
+        "https://careerscope-ai-git-main-varunshah03s-projects.vercel.app",
+        "https://careerscope-bpo0pkew3-varunshah03s-projects.vercel.app",
+        "https://careerscope-ai.vercel.app",
+      ];
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
