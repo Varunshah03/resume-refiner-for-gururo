@@ -1,6 +1,6 @@
 // API Configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://your-backend-url.com'
+  ? 'https://careerscope-ai.onrender.com'
   : 'http://localhost:3001';
 
 // Helper function to normalize job title for consistent range lookup
