@@ -1,32 +1,12 @@
+// mockData.ts
 // API Configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://careerscope-ai.onrender.com'
   : 'http://localhost:3001';
 
-// Helper function to normalize job title for consistent range lookup
+// Helper function to normalize job title for consistent lookup
 function normalizeJobTitle(title: string): string {
-  const titleLower = title.toLowerCase();
-  
-  if (titleLower.includes('senior') && (titleLower.includes('software') || titleLower.includes('engineer'))) {
-    return 'Senior Software Engineer';
-  }
-  if (titleLower.includes('data') && titleLower.includes('scientist')) {
-    return 'Data Scientist';
-  }
-  if (titleLower.includes('product') && titleLower.includes('manager')) {
-    return 'Product Manager';
-  }
-  if (titleLower.includes('ux') || titleLower.includes('ui')) {
-    return 'UX Designer';
-  }
-  if (titleLower.includes('devops')) {
-    return 'DevOps Engineer';
-  }
-  if (titleLower.includes('marketing') && titleLower.includes('manager')) {
-    return 'Marketing Manager';
-  }
-  
-  return 'default';
+  return title.trim().toLowerCase();
 }
 
 export const analyzeResume = async (file: File) => {
@@ -54,24 +34,13 @@ export const analyzeResume = async (file: File) => {
     const result = await response.json();
     console.log('Analysis Result:', result);
     
-    // The backend should already have normalized data, but double-check
-    const normalizedData = {
-      ...result.data,
-      careerGrowth: result.data.careerGrowth.map((item: any) => ({
-        ...item,
-        salary: item.salary < 1000 ? item.salary * 1000 : Math.round(item.salary),
-        demand: Math.round(item.demand),
-      })),
-    };
-    
-    console.log('Normalized Data (analyzeResume):', normalizedData.careerGrowth);
-    return normalizedData;
+    return result.data;
   } catch (error) {
     console.error('Resume analysis error:', error);
     console.log('Falling back to mock data due to API error');
     const mockData = generateMockAnalysis(file.name);
-    console.log('Mock Data (analyzeResume):', mockData.careerGrowth);
-    return mockData;
+    console.log('Mock Data (analyzeResume):', mockData);
+    return { ...mockData, isFallback: true };
   }
 };
 
@@ -84,39 +53,38 @@ export const generateMockAnalysis = (fileName: string) => {
     'UX Designer',
     'DevOps Engineer',
     'Marketing Manager',
+    'Registered Nurse',
+    'Lawyer',
+    'Data Analyst',
+    'Financial Analyst',
+    'Graphic Designer',
+    'Teacher',
+    'Digital Marketing'
   ];
 
-  const SALARY_RANGES: Record<string, { min: number; max: number }> = {
-    'Senior Software Engineer': { min: 100000, max: 250000 },
-    'Data Scientist': { min: 100000, max: 220000 },
-    'Product Manager': { min: 90000, max: 180000 },
-    'UX Designer': { min: 70000, max: 150000 },
-    'DevOps Engineer': { min: 95000, max: 200000 },
-    'Marketing Manager': { min: 80000, max: 160000 },
-    'default': { min: 60000, max: 150000 },
-  };
-
-  // STRICT demand ranges - NEVER exceed these values
-  const DEMAND_RANGES: Record<string, { min: number; max: number }> = {
-    'Senior Software Engineer': { min: 70, max: 85 },
-    'Data Scientist': { min: 75, max: 90 },
-    'Product Manager': { min: 60, max: 80 },
-    'UX Designer': { min: 50, max: 70 },
-    'DevOps Engineer': { min: 65, max: 85 },
-    'Marketing Manager': { min: 45, max: 65 },
-    'default': { min: 40, max: 60 },
-  };
-
   const experienceLevels = [
+    'Entry-level (0-2 years)',
     'Mid-level (3-5 years)',
     'Senior (5-8 years)',
-    'Expert (8+ years)',
-    'Entry-level (0-2 years)',
+'senior (5-8 years)',
+    'Executive (8+ years)'
   ];
 
   const riskLevels = ['Low', 'Medium', 'High'] as const;
 
-  const jobTitle = jobTitles[Math.floor(Math.random() * jobTitles.length)];
+  // Derive job title from filename if possible
+  const fileNameLower = fileName.toLowerCase();
+  const jobTitle = fileNameLower.includes('software') ? 'Software Engineer' :
+                   fileNameLower.includes('data') ? 'Data Scientist' :
+                   fileNameLower.includes('nurse') ? 'Registered Nurse' :
+                   fileNameLower.includes('lawyer') ? 'Lawyer' :
+                   fileNameLower.includes('ux') ? 'UX Designer' :
+                   fileNameLower.includes('marketing') ? 'Marketing Manager' :
+                   fileNameLower.includes('digital') ? 'Digital Marketing' :
+                   fileNameLower.includes('financial') ? 'Financial Analyst' :
+                   fileNameLower.includes('graphic') ? 'Graphic Designer' :
+                   fileNameLower.includes('teacher') ? 'Teacher' :
+                   jobTitles[Math.floor(Math.random() * jobTitles.length)];
   const normalizedJobTitle = normalizeJobTitle(jobTitle);
   const experienceLevel = experienceLevels[Math.floor(Math.random() * experienceLevels.length)];
   const aiRiskLevel = riskLevels[Math.floor(Math.random() * riskLevels.length)];
@@ -125,49 +93,10 @@ export const generateMockAnalysis = (fileName: string) => {
     'JavaScript', 'Python', 'React', 'Node.js', 'AWS', 'Docker',
     'Machine Learning', 'Data Analysis', 'Project Management', 'Leadership',
     'UI/UX Design', 'SQL', 'Git', 'Agile', 'Communication',
-  ].slice(0, 8 + Math.floor(Math.random() * 4));
-
-  const salaryRange = SALARY_RANGES[normalizedJobTitle] || SALARY_RANGES['default'];
-  const demandRange = DEMAND_RANGES[normalizedJobTitle] || DEMAND_RANGES['default'];
-  
-  console.log(`Mock data for ${jobTitle} (normalized: ${normalizedJobTitle})`);
-  console.log(`Demand range: ${demandRange.min}% - ${demandRange.max}%`);
-  console.log(`Salary range: $${salaryRange.min.toLocaleString()} - $${salaryRange.max.toLocaleString()}`);
-
-  // Generate realistic career growth with market fluctuations
-  const careerGrowth = Array.from({ length: 10 }, (_, i) => {
-    const year = 2024 + i;
-    
-    // Create realistic demand progression with some market fluctuations
-    const demandProgress = i / 10; // 0 to 0.9
-    const marketFluctuation = (Math.random() - 0.5) * 0.1; // -5% to +5% random variation
-    
-    // Calculate base demand within the allowed range
-    let demand = demandRange.min + (demandRange.max - demandRange.min) * (0.6 + demandProgress * 0.3 + marketFluctuation);
-    
-    // Strictly enforce the maximum demand
-    demand = Math.round(Math.min(demandRange.max, Math.max(demandRange.min, demand)));
-    
-    // Generate salary with realistic growth
-    const salaryProgress = i / 9; // 0 to 1 over 10 years
-    const baseSalary = salaryRange.min + (salaryRange.max - salaryRange.min) * (0.4 + salaryProgress * 0.5);
-    const salaryVariation = (Math.random() - 0.5) * 0.1; // Small random variation
-    const salary = Math.round(baseSalary * (1 + salaryVariation));
-    
-    return {
-      year,
-      demand,
-      salary: Math.min(salaryRange.max, Math.max(salaryRange.min, salary)),
-    };
-  });
-
-  console.log(`Mock careerGrowth for ${jobTitle}:`, careerGrowth.map(item => `${item.year}: ${item.demand}%`));
-  
-  // Verify no demand values exceed the maximum
-  const maxDemandInData = Math.max(...careerGrowth.map(item => item.demand));
-  if (maxDemandInData > demandRange.max) {
-    console.error(`ERROR: Generated demand ${maxDemandInData}% exceeds maximum ${demandRange.max}% for ${jobTitle}`);
-  }
+    'Clinical Skills', 'Legal Analysis', 'Patient Care', 'Negotiation',
+    'Financial Modeling', 'Graphic Design', 'Curriculum Development',
+    'Digital Marketing'
+  ].slice(0, 6 + Math.floor(Math.random() * 4));
 
   const skillsAssessment = [
     { skill: 'Technical Skills', current: Math.round(75 + Math.random() * 20), recommended: Math.round(85 + Math.random() * 15) },
@@ -175,47 +104,83 @@ export const generateMockAnalysis = (fileName: string) => {
     { skill: 'Communication', current: Math.round(70 + Math.random() * 20), recommended: Math.round(85 + Math.random() * 15) },
     { skill: 'Problem Solving', current: Math.round(80 + Math.random() * 15), recommended: Math.round(90 + Math.random() * 10) },
     { skill: 'Adaptability', current: Math.round(65 + Math.random() * 25), recommended: Math.round(85 + Math.random() * 15) },
-    { skill: 'Innovation', current: Math.round(70 + Math.random() * 20), recommended: Math.round(80 + Math.random() * 20) },
+    { skill: 'Innovation', current: Math.round(70 + Math.random() * 20), recommended: Math.round(80 + Math.random() * 20) }
   ];
 
   const emergingRoles = [
     { title: 'AI/ML Engineer', growth: Math.round(85 + Math.random() * 15), match: Math.round(75 + Math.random() * 20) },
     { title: 'Cloud Architect', growth: Math.round(70 + Math.random() * 20), match: Math.round(65 + Math.random() * 25) },
     { title: 'Product Strategist', growth: Math.round(60 + Math.random() * 25), match: Math.round(70 + Math.random() * 20) },
-    { title: 'Data Engineer', growth: Math.round(80 + Math.random() * 15), match: Math.round(60 + Math.random() * 30) },
+    { title: 'Data Engineer', growth: Math.round(80 + Math.random() * 15), match: Math.round(60 + Math.random() * 30) }
   ];
 
   const aiImpactSummaries = [
     'AI will enhance your role by automating routine tasks, allowing you to focus on strategic thinking and creative problem-solving.',
     'While AI may automate some tasks, your domain expertise and interpersonal skills remain highly valuable.',
-    'AI presents both challenges and opportunities in your field. Adapting to AI tools will be crucial for maintaining competitiveness.',
+    'AI presents both challenges and opportunities in your field. Adapting to AI tools will be crucial for maintaining competitiveness.'
   ];
 
   const timelines = ['2-3 years', '3-5 years', '5-7 years'];
 
-  const recommendationSets = [
-    [
-      'Develop expertise in AI and machine learning fundamentals to stay competitive.',
-      'Focus on cross-functional collaboration skills that AI cannot replicate.',
-      'Pursue certifications in cloud platforms (AWS, Azure, GCP) for modern infrastructure.',
-      'Invest in data analysis and visualization skills for data-driven decision making.',
-      'Build a professional network through industry events and online communities.',
-    ],
-    [
-      'Enhance understanding of emerging technologies in your field.',
-      'Develop project management and leadership capabilities.',
-      'Focus on continuous learning and adaptability in a rapidly changing market.',
-      'Build expertise in automation tools to improve efficiency.',
-      'Cultivate strategic thinking and business acumen for career advancement.',
-    ],
-  ];
+  // Generate dynamic learning paths based on core skills and skill gaps
+  const learningPaths = skillsAssessment
+    .filter(skill => skill.current < skill.recommended)
+    .slice(0, 3)
+    .map((skill, index) => {
+      const platforms = ['Coursera', 'Udemy', 'LinkedIn Learning'];
+      const platform = platforms[index % platforms.length];
+      const duration = `${8 + index * 5} hours`;
+      const skillLower = skill.skill.toLowerCase();
+      let courseTitle = `Advanced ${skill.skill}`;
+      let link = `https://www.${platform.toLowerCase().replace(' ', '')}.com/learn/${skillLower.replace(' ', '-')}`;
+
+      if (skillLower.includes('technical')) {
+        courseTitle = jobTitle.toLowerCase().includes('software') ? 'Advanced Software Development' :
+                      jobTitle.toLowerCase().includes('data') ? 'Data Analysis Fundamentals' :
+                      jobTitle.toLowerCase().includes('nurse') ? 'Advanced Clinical Skills' :
+                      jobTitle.toLowerCase().includes('lawyer') ? 'Legal Analysis and Writing' :
+                      jobTitle.toLowerCase().includes('marketing') ? 'Digital Marketing Strategies' :
+                      jobTitle.toLowerCase().includes('financial') ? 'Financial Modeling and Analysis' :
+                      jobTitle.toLowerCase().includes('graphic') ? 'Graphic Design Mastery' :
+                      jobTitle.toLowerCase().includes('teacher') ? 'Modern Teaching Methods' :
+                      'Professional Skills Development';
+        link = `https://www.${platform.toLowerCase().replace(' ', '')}.com/learn/${courseTitle.toLowerCase().replace(' ', '-')}`;
+      } else if (skillLower.includes('leadership')) {
+        courseTitle = ' Leadership and Management';
+      } else if (skillLower.includes('communication')) {
+        courseTitle = 'Effective Communication Skills';
+      } else if (skillLower.includes('problem solving')) {
+        courseTitle = 'Problem Solving Techniques';
+      } else if (skillLower.includes('adaptability')) {
+        courseTitle = 'Adaptability and Resilience';
+      }
+
+      return {
+        title: courseTitle,
+        platform,
+        duration,
+        link,
+        skillAddressed: skill.skill
+      };
+    });
+
+  // Ensure at least 3 learning paths
+  while (learningPaths.length < 3) {
+    const defaultSkill = skillsAssessment[learningPaths.length % skillsAssessment.length].skill;
+    learningPaths.push({
+      title: `Introduction to ${defaultSkill}`,
+      platform: 'Coursera',
+      duration: '10 hours',
+      link: `https://www.coursera.org/learn/${defaultSkill.toLowerCase().replace(' ', '-')}`,
+      skillAddressed: defaultSkill
+    });
+  }
 
   return {
     jobTitle,
     experienceLevel,
     aiRiskLevel,
-    coreSkills: coreSkills.slice(0, 6 + Math.floor(Math.random() * 4)),
-    careerGrowth,
+    coreSkills,
     skillsAssessment,
     emergingRoles,
     aiImpact: {
@@ -223,6 +188,14 @@ export const generateMockAnalysis = (fileName: string) => {
       timeline: timelines[Math.floor(Math.random() * timelines.length)],
       adaptationPotential: Math.round(60 + Math.random() * 35),
     },
-    recommendations: recommendationSets[Math.floor(Math.random() * recommendationSets.length)],
+    recommendations: [
+      'Develop expertise in emerging technologies relevant to your field',
+      'Focus on skills that complement AI rather than compete with it',
+      'Build cross-functional collaboration capabilities',
+      'Invest in continuous learning and adaptability',
+      'Strengthen strategic thinking and leadership skills'
+    ],
+    learningPaths,
+    extractionWarning: 'Failed to extract text from resume, using mock data'
   };
 };

@@ -1,19 +1,26 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CareerGrowthChart } from './CareerGrowthChart';
 import { SkillsRadarChart } from './SkillsRadarChart';
 import { EmergingRoles } from './EmergingRoles';
 import { AIImpactAnalysis } from './AIImpactAnalysis';
 import { Recommendations } from './Recommendations';
-import { TrendingUp, Shield, Brain, RotateCcw } from 'lucide-react';
+import { LearningPaths } from './LearningPaths';
+import { Shield, Brain, RotateCcw } from 'lucide-react';
+
+interface LearningPath {
+  title: string;
+  platform: string;
+  duration: string;
+  link: string;
+  skillAddressed: string;
+}
 
 interface AnalysisData {
   jobTitle: string;
   experienceLevel: string;
   aiRiskLevel: 'Low' | 'Medium' | 'High';
   coreSkills: string[];
-  careerGrowth: Array<{ year: number; demand: number; salary: number }>;
   skillsAssessment: Array<{ skill: string; current: number; recommended: number }>;
   emergingRoles: Array<{ title: string; growth: number; match: number }>;
   aiImpact: {
@@ -22,6 +29,10 @@ interface AnalysisData {
     adaptationPotential: number;
   };
   recommendations: string[];
+  learningPaths?: LearningPath[];
+  isFallback?: boolean;
+  extractionWarning?: string;
+  quotaExceeded?: boolean; // Added for quota limit errors
 }
 
 interface AnalysisResultsProps {
@@ -42,6 +53,13 @@ export const AnalysisResults = ({ data, onAnalyzeAnother }: AnalysisResultsProps
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8">
       <Card className="p-8 bg-gradient-card border-border/50 shadow-card">
+        {(data.isFallback || data.extractionWarning || data.quotaExceeded) && (
+          <p className="text-warning mb-4">
+            {data.quotaExceeded
+              ? "API quota limit exceeded. Using fallback data. Please try again later or contact support."
+              : data.extractionWarning || (data.isFallback && "Using fallback data due to temporary AI unavailability. Results may be less accurate.")}
+          </p>
+        )}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -69,6 +87,7 @@ export const AnalysisResults = ({ data, onAnalyzeAnother }: AnalysisResultsProps
           </Button>
         </div>
       </Card>
+
       <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
         <h2 className="text-xl font-semibold text-foreground mb-4">Core Skills</h2>
         <div className="flex flex-wrap gap-2">
@@ -83,23 +102,21 @@ export const AnalysisResults = ({ data, onAnalyzeAnother }: AnalysisResultsProps
           ))}
         </div>
       </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-          <div className="flex items-center mb-4">
-            <TrendingUp className="w-5 h-5 text-primary mr-2" />
-            <h2 className="text-xl font-semibold text-foreground">Career Growth Projection</h2>
-          </div>
-          <CareerGrowthChart data={data.careerGrowth} jobTitle={data.jobTitle} />
-        </Card>
         <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
           <h2 className="text-xl font-semibold text-foreground mb-4">Skills Assessment</h2>
           <SkillsRadarChart data={data.skillsAssessment} />
         </Card>
+
+        <LearningPaths learningPaths={data.learningPaths || []} />
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <EmergingRoles data={data.emergingRoles} />
         <AIImpactAnalysis data={data.aiImpact} />
       </div>
+
       <Recommendations recommendations={data.recommendations} />
     </div>
   );
