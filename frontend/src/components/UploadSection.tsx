@@ -3,6 +3,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { auth, db } from '@/firebase.js';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface UploadSectionProps {
   onFileUpload: (file: File) => Promise<void>;
@@ -75,19 +77,89 @@ export const UploadSection = ({ onFileUpload }: UploadSectionProps) => {
     return true;
   };
 
-  const handleAnalyze = async () => {
-    if (selectedFile) {
-      console.log('handleAnalyze called with file:', selectedFile.name);
-      try {
-        await onFileUpload(selectedFile);
-        setSelectedFile(null); // Reset after successful upload
-      } catch (error) {
-        toast({
-          title: 'Analysis Failed',
-          description: error.message || 'Failed to analyze resume. Please try again.',
-          variant: 'destructive',
-        });
+  const checkAnalysisLimit = async (userEmail: string) => {
+    try {
+      const attemptRef = doc(db, 'analysisAttempts', userEmail);
+      const attemptSnap = await getDoc(attemptRef);
+
+      if (attemptSnap.exists()) {
+        const lastAttempt = attemptSnap.data()?.timestamp?.toDate();
+        if (lastAttempt) {
+          const now = new Date();
+          const timeDiff = now.getTime() - lastAttempt.getTime();
+          const hoursSinceLastAttempt = timeDiff / (1000 * 60 * 60);
+
+          if (hoursSinceLastAttempt < 24) {
+            const hoursLeft = (24 - hoursSinceLastAttempt).toFixed(1);
+            toast({
+              title: 'Analysis Limit Reached',
+              description: `You can only analyze one resume per day. Please try again in ${hoursLeft} hours.`,
+              variant: 'destructive',
+            });
+            return false;
+          }
+        }
       }
+      return true;
+    } catch (error) {
+      console.error('Error checking analysis limit:', error);
+      toast({
+        title: 'Database Error',
+        description: 'Failed to check analysis limit. Please try again later.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const recordAnalysisAttempt = async (userEmail: string) => {
+    try {
+      const attemptRef = doc(db, 'analysisAttempts', userEmail);
+      await setDoc(attemptRef, {
+        timestamp: serverTimestamp(),
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error recording analysis attempt:', error);
+      toast({
+        title: 'Database Error',
+        description: 'Failed to record analysis attempt. Analysis completed, but limit may not be enforced.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) return;
+
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to analyze a resume.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const canAnalyze = await checkAnalysisLimit(user.email);
+      if (!canAnalyze) return;
+
+      console.log('handleAnalyze called with file:', selectedFile.name);
+      await onFileUpload(selectedFile);
+      await recordAnalysisAttempt(user.email);
+      toast({
+        title: 'Analysis Complete',
+        description: 'Your resume has been successfully analyzed.',
+      });
+      setSelectedFile(null); // Reset after successful upload
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to analyze resume. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 

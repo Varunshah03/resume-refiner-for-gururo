@@ -22,7 +22,7 @@ export const Recommendations = ({ recommendations }: RecommendationsProps) => {
                 {recommendation}
               </p>
             </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            {/* <ArrowRight className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" /> */}
           </div>
         ))}
       </div>
