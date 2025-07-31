@@ -142,12 +142,13 @@ export const UploadSection = ({ onFileUpload }: UploadSectionProps) => {
     }
 
     try {
-      const canAnalyze = await checkAnalysisLimit(user.email);
-      if (!canAnalyze) return;
+      // Temporarily disable daily limit check to pause the feature
+      // const canAnalyze = await checkAnalysisLimit(user.email);
+      // if (!canAnalyze) return;
 
       console.log('handleAnalyze called with file:', selectedFile.name);
       await onFileUpload(selectedFile);
-      await recordAnalysisAttempt(user.email);
+      // await recordAnalysisAttempt(user.email); // Optionally disable recording as well
       toast({
         title: 'Analysis Complete',
         description: 'Your resume has been successfully analyzed.',
