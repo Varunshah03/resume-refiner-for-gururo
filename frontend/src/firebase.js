@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage'; // Add Storage import
 
 // Validate environment variables
 const requiredEnvVars = [
@@ -33,6 +34,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app); // Add Storage
 const googleProvider = new GoogleAuthProvider();
 
-export { auth, db, googleProvider, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword };
+export { auth, db, storage, googleProvider, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword };

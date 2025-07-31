@@ -1,261 +1,186 @@
-import { useState, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Upload, FileText, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/firebase.js';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useCallback, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Upload, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/firebase.js";
+import { Link } from "react-router-dom";
 
 interface UploadSectionProps {
   onFileUpload: (file: File) => Promise<void>;
 }
 
-export const UploadSection = ({ onFileUpload }: UploadSectionProps) => {
-  const [dragActive, setDragActive] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export default function UploadSection({ onFileUpload }: UploadSectionProps) {
   const { toast } = useToast();
+  const [dragActive, setDragActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    } else if (e.type === "dragleave") {
       setDragActive(false);
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      const file = files[0];
-      if (validateFile(file)) {
-        setSelectedFile(file);
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile) {
+        setFile(droppedFile);
       }
-    }
-  }, []);
+    },
+    []
+  );
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files[0]) {
-      const file = files[0];
-      if (validateFile(file)) {
-        setSelectedFile(file);
-      }
-    }
-  };
-
-  const validateFile = (file: File) => {
-    const validTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    const maxSize = 10 * 1024 * 1024; // 10MB
-
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: 'Invalid File Type',
-        description: 'Please upload a PDF or DOCX file.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    if (file.size > maxSize) {
-      toast({
-        title: 'File Too Large',
-        description: 'File size must be less than 10MB.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  const checkAnalysisLimit = async (userEmail: string) => {
-    try {
-      const attemptRef = doc(db, 'analysisAttempts', userEmail);
-      const attemptSnap = await getDoc(attemptRef);
-
-      if (attemptSnap.exists()) {
-        const lastAttempt = attemptSnap.data()?.timestamp?.toDate();
-        if (lastAttempt) {
-          const now = new Date();
-          const timeDiff = now.getTime() - lastAttempt.getTime();
-          const hoursSinceLastAttempt = timeDiff / (1000 * 60 * 60);
-
-          if (hoursSinceLastAttempt < 24) {
-            const hoursLeft = (24 - hoursSinceLastAttempt).toFixed(1);
-            toast({
-              title: 'Analysis Limit Reached',
-              description: `You can only analyze one resume per day. Please try again in ${hoursLeft} hours.`,
-              variant: 'destructive',
-            });
-            return false;
-          }
-        }
-      }
-      return true;
-    } catch (error) {
-      console.error('Error checking analysis limit:', error);
-      toast({
-        title: 'Database Error',
-        description: 'Failed to check analysis limit. Please try again later.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  };
-
-  const recordAnalysisAttempt = async (userEmail: string) => {
-    try {
-      const attemptRef = doc(db, 'analysisAttempts', userEmail);
-      await setDoc(attemptRef, {
-        timestamp: serverTimestamp(),
-      }, { merge: true });
-    } catch (error) {
-      console.error('Error recording analysis attempt:', error);
-      toast({
-        title: 'Database Error',
-        description: 'Failed to record analysis attempt. Analysis completed, but limit may not be enforced.',
-        variant: 'destructive',
-      });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
     }
   };
 
   const handleAnalyze = async () => {
-    if (!selectedFile) return;
-
-    const user = auth.currentUser;
-    if (!user || !user.email) {
+    if (!file) {
       toast({
-        title: 'Authentication Error',
-        description: 'You must be logged in to analyze a resume.',
-        variant: 'destructive',
+        title: "No file selected",
+        description: "Please select a resume file to analyze.",
+        variant: "destructive",
       });
       return;
     }
 
-    try {
-      // Temporarily disable daily limit check to pause the feature
-      // const canAnalyze = await checkAnalysisLimit(user.email);
-      // if (!canAnalyze) return;
+    const validTypes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    const maxSize = 10 * 1024 * 1024; // 10MB
 
-      console.log('handleAnalyze called with file:', selectedFile.name);
-      await onFileUpload(selectedFile);
-      // await recordAnalysisAttempt(user.email); // Optionally disable recording as well
+    if (!validTypes.includes(file.type)) {
       toast({
-        title: 'Analysis Complete',
-        description: 'Your resume has been successfully analyzed.',
+        title: "Invalid file type",
+        description: "Please upload a PDF or DOCX file.",
+        variant: "destructive",
       });
-      setSelectedFile(null); // Reset after successful upload
-    } catch (error) {
-      console.error('Analysis error:', error);
+      return;
+    }
+
+    if (file.size > maxSize) {
       toast({
-        title: 'Analysis Failed',
-        description: error.message || 'Failed to analyze resume. Please try again.',
-        variant: 'destructive',
+        title: "File too large",
+        description: "File size must be less than 10MB.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await onFileUpload(file);
+      toast({
+        title: "Success",
+        description: "Resume analysis completed successfully.",
+      });
+      setFile(null);
+    } catch (error: any) {
+      console.error("Analyze error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to analyze resume. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
+  const getInitials = (name: string) => {
+    const names = name.split(" ");
+    return names.map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
+  const user = auth.currentUser;
+  const displayName = user?.displayName || "User";
+  const email = user?.email || "No email";
+
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <Card className="p-8 bg-gradient-card border-border/50 shadow-card transition-smooth hover:shadow-glow/20">
-        {!selectedFile ? (
+    <div className="relative max-w-2xl mx-auto p-6">
+      {/* Profile Link - Fixed Top-Right */}
+      <Link to="/profile" className="fixed top-4 right-4 group z-50">
+        <div className="flex items-center gap-3 bg-gradient-card p-3 rounded-full shadow-card hover:shadow-glow/20 transition-smooth">
+          <div className="h-12 w-12 flex items-center justify-center rounded-full bg-gradient-primary text-white text-sm font-bold">
+            {getInitials(displayName)}
+          </div>
+          <div className="hidden group-hover:block text-sm max-w-xs truncate">
+            <p className="font-medium">{displayName}</p>
+            <p className="text-muted-foreground">{email}</p>
+          </div>
+        </div>
+      </Link>
+
+      <Card className="bg-gradient-card border-border/50 shadow-card transition-smooth hover:shadow-glow/20">
+        <CardHeader>
+          <CardTitle>Upload Resume</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div
-            className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-smooth ${
-              dragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              dragActive ? "border-primary bg-primary/5" : "border-border"
             }`}
             onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
             onDragOver={handleDrag}
+            onDragLeave={handleDrag}
             onDrop={handleDrop}
           >
             <input
               type="file"
-              id="file-upload"
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              id="resume-upload"
               accept=".pdf,.docx"
-              onChange={handleFileSelect}
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={isLoading}
             />
-            <div className="space-y-4">
-              <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center">
-                <Upload className="w-8 h-8 text-white" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-foreground">
-                  Upload Your Resume
-                </h3>
-                <p className="text-muted-foreground">
-                  Drag and drop your resume here, or click to select
+            <label htmlFor="resume-upload" className="cursor-pointer">
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm">
+                  {file ? file.name : "Drag and drop your resume here or click to upload"}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Supports PDF and DOCX files up to 10MB
+                <p className="text-xs text-muted-foreground">
+                  Supports PDF and DOCX files (max 10MB)
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="gradient"
-                onClick={() => document.getElementById('file-upload')?.click()}
-              >
-                Choose File
-              </Button>
-            </div>
+            </label>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
+
+          {file && (
+            <div className="flex items-center justify-between bg-muted/50 p-2 rounded-md">
+              <span className="text-sm truncate max-w-[70%]">{file.name}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={removeFile}
-                className="text-muted-foreground hover:text-destructive"
+                onClick={() => setFile(null)}
+                disabled={isLoading}
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex space-x-3">
-              <Button
-                onClick={handleAnalyze}
-                variant="gradient"
-                className="flex-1"
-              >
-                Analyze Resume
-              </Button>
-              <Button
-                variant="outline"
-                onClick={removeFile}
-                className="border-border hover:border-primary/50"
-              >
-                Remove
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+
+          <Button
+            className="w-full"
+            variant="gradient"
+            onClick={handleAnalyze}
+            disabled={isLoading || !file}
+          >
+            {isLoading ? "Analyzing..." : "Analyze Resume"}
+          </Button>
+        </CardContent>
       </Card>
     </div>
   );
-};
+}

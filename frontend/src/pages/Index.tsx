@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UploadSection } from '@/components/UploadSection';
+import UploadSection  from '@/components/UploadSection';
 import { AnalysisResults } from '@/components/AnalysisResults';
 import { analyzeResume } from '@/utils/mockData'; // Removed generateMockAnalysis import
 import { Brain, TrendingUp, Shield, Sparkles } from 'lucide-react';

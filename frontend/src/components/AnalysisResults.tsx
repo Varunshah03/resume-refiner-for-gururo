@@ -7,6 +7,8 @@ import { AIImpactAnalysis } from './AIImpactAnalysis';
 import { Recommendations } from './Recommendations';
 import { LearningPaths } from './LearningPaths';
 import { Shield, Brain, RotateCcw } from 'lucide-react';
+import { auth } from '@/firebase.js';
+import { Link } from 'react-router-dom';
 
 interface LearningPath {
   title: string;
@@ -32,7 +34,7 @@ interface AnalysisData {
   learningPaths?: LearningPath[];
   isFallback?: boolean;
   extractionWarning?: string;
-  quotaExceeded?: boolean; // Added for quota limit errors
+  quotaExceeded?: boolean;
 }
 
 interface AnalysisResultsProps {
@@ -50,8 +52,30 @@ export const AnalysisResults = ({ data, onAnalyzeAnother }: AnalysisResultsProps
     }
   };
 
+  const getInitials = (name: string) => {
+    const names = name.split(" ");
+    return names.map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const user = auth.currentUser;
+  const displayName = user?.displayName || "User";
+  const email = user?.email || "No email";
+
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8">
+    <div className="relative w-full max-w-7xl mx-auto p-6 space-y-8">
+      {/* Profile Link - Fixed Top-Right */}
+      <Link to="/profile" className="fixed top-4 right-4 group z-50">
+        <div className="flex items-center gap-3 bg-gradient-card p-3 rounded-full shadow-card hover:shadow-glow/20 transition-smooth">
+          <div className="h-12 w-12 flex items-center justify-center rounded-full bg-gradient-primary text-white text-sm font-bold">
+            {getInitials(displayName)}
+          </div>
+          <div className="hidden group-hover:block text-sm max-w-xs truncate">
+            <p className="font-medium">{displayName}</p>
+            <p className="text-muted-foreground">{email}</p>
+          </div>
+        </div>
+      </Link>
+
       <Card className="p-8 bg-gradient-card border-border/50 shadow-card">
         {(data.isFallback || data.extractionWarning || data.quotaExceeded) && (
           <p className="text-warning mb-4">

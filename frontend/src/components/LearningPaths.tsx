@@ -36,7 +36,7 @@ export const LearningPaths = ({ learningPaths }: LearningPathsProps) => {
                   Addresses: <Badge className="bg-primary/10 text-primary">{path.skillAddressed}</Badge>
                 </div>
               </div>
-              <a
+              {/* <a
                 href={path.link}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -44,7 +44,7 @@ export const LearningPaths = ({ learningPaths }: LearningPathsProps) => {
               >
                 <ExternalLink className="w-4 h-4 mr-1" />
                 Enroll Now
-              </a>
+              </a> */}
             </div>
           ))}
         </div>
