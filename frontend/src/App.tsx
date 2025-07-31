@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+      <SpeedInsights />
     </TooltipProvider>
   </QueryClientProvider>
 );
