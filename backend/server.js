@@ -8,8 +8,8 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createHash } from "crypto";
-import fs from "fs/promises";
 import { existsSync, mkdirSync } from "fs";
+import fs from "fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,13 +31,14 @@ app.use(
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:8080",
-        "resume-refiner-for-gururo.vercel.app",
-        "resume-refiner-for-gururo-lby6lvb8o-varunshah03s-projects.vercel.app",
+        "https://resume-refiner-for-gururo.vercel.app",
+        "https://resume-refiner-for-gururo-lby6lvb8o-varunshah03s-projects.vercel.app",
+        "http://resumerefiner.gururo.com",
       ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(new Error(`CORS policy: Origin ${origin} not allowed`));
       }
     },
     credentials: true,
@@ -60,7 +61,7 @@ app.use(express.json());
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
