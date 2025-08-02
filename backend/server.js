@@ -31,10 +31,8 @@ app.use(
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:8080",
-        "https://careerscope-ai.vercel.app",
-        "careerscope-ai-varunshah03s-projects.vercel.app",
-        "careerscope-ai-git-main-varunshah03s-projects.vercel.app",
-        "careerscope-b5onnl9z4-varunshah03s-projects.vercel.app",
+        "resume-refiner-for-gururo.vercel.app",
+        "resume-refiner-for-gururo-lby6lvb8o-varunshah03s-projects.vercel.app",
       ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
