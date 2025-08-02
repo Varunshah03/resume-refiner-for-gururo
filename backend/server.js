@@ -33,7 +33,7 @@ app.use(
         "http://localhost:8080",
         "https://resume-refiner-for-gururo.vercel.app",
         "https://resume-refiner-for-gururo-lby6lvb8o-varunshah03s-projects.vercel.app",
-        "http://resumerefiner.gururo.com",
+        "https://resumerefiner.careerswami.com",
       ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
