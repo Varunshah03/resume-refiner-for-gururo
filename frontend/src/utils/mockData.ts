@@ -1,7 +1,7 @@
 // mockData.ts
 // API Configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://careerscope-ai.onrender.com'
+  ? 'https://resume-refiner-for-gururo.onrender.com'
   : 'http://localhost:3001';
 
 // Helper function to normalize job title for consistent lookup
